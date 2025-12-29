@@ -6,12 +6,6 @@
             "description": "Lunch",
             "amount": 20.0,
             "date": "2025-12-29"
-        },
-        {
-            "id": 2,
-            "description": "Dinner",
-            "amount": 10.0,
-            "date": "2025-12-29"
         }
     ]
 }
