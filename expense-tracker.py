@@ -27,6 +27,9 @@ def main():
     update_parser.add_argument("--description", type=str, required=True, help="Description of expense")
     update_parser.add_argument("--amount", type=float, required=True, help="Amount spent")
 
+    delete_parser = subparsers.add_parser("delete", help="Delete an expense")
+    delete_parser.add_argument("--id", type=int, required=True, help="The index in expense list")
+
     args = parser.parse_args()
 
     if args.command == "add":
@@ -46,6 +49,12 @@ def main():
                 exp["amount"] = args.amount
                 save_data(filename, data)
                 print(f"Expense updated successfully (ID: {exp["id"]})")
+    elif args.command == "delete":
+        original_length = len(data["expenses"])
+        data["expenses"] = [e for e in data["expenses"] if e["id"] != args.id]
+        if len(data["expenses"]) < original_length:
+            save_data(filename, data)
+            print(f"Expense deleted successfully")
     else:
         parser.print_help()
 
