@@ -1,6 +1,6 @@
 import argparse
 import json
-
+from datetime import datetime
 def load_data(filename):
     try:
         with open(filename, "r") as file:
@@ -18,17 +18,19 @@ def main():
     parser = argparse.ArgumentParser(description="Enpense Tracker Program")
     subparsers = parser.add_subparsers(dest="command", help="Support commands")
 
-    add_parser = subparsers.add_parser("add", help="Add another expense")
+    add_parser = subparsers.add_parser("add", help="Add an expense")
     add_parser.add_argument("--description", type=str, required=True, help="Description of expense")
     add_parser.add_argument("--amount", type=float, required=True, help="Amount spent")
 
-    update_parser = subparsers.add_parser("update", help="Update a expense")
+    update_parser = subparsers.add_parser("update", help="Update an expense")
     update_parser.add_argument("--id", type=int, required=True, help="The index in expense list")
     update_parser.add_argument("--description", type=str, required=True, help="Description of expense")
     update_parser.add_argument("--amount", type=float, required=True, help="Amount spent")
 
     delete_parser = subparsers.add_parser("delete", help="Delete an expense")
     delete_parser.add_argument("--id", type=int, required=True, help="The index in expense list")
+
+    list_parser = subparsers.add_parser("list", help="View all expenses")
 
     args = parser.parse_args()
 
@@ -37,6 +39,7 @@ def main():
             "id": data["next_id"],
             "description": args.description,
             "amount": args.amount,
+            "date": datetime.now().strftime("%Y-%m-%d")
         }
         data["expenses"].append(new_expense)
         data["next_id"] += 1
@@ -55,6 +58,13 @@ def main():
         if len(data["expenses"]) < original_length:
             save_data(filename, data)
             print(f"Expense deleted successfully")
+    elif args.command == "list":
+        if len(data["expenses"]) > 0:
+            print(f"{"ID":7} {"Date":15} {"Description":15} {"Amount":10}")
+            for exp in data["expenses"]:
+                print(f"{str(exp["id"]):7} {exp["date"]:15} {exp["description"]:15} ${str(exp["amount"]):10}")
+        else:
+            print("The list is empty")
     else:
         parser.print_help()
 
