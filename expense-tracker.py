@@ -12,89 +12,103 @@ def save_data(filename, data):
     with open(filename, "w") as file:
         json.dump(data, file, indent=4)
 
+def add_expense(data, description, amount):
+    new_expense = {
+        "id": data["next_id"],
+        "description": description,
+        "amount": amount,
+        "date": datetime.now().strftime("%Y-%m-%d")
+    }
+    data["expenses"].append(new_expense)
+    data["next_id"] += 1
+    print(f"Expense added successfully (ID: {new_expense['id']})")
+
+def update_expense(data, exp_id, description, amount):
+    for exp in data["expenses"]:
+        if exp["id"] == exp_id:
+            exp["description"] = description
+            exp["amount"] = amount
+            print(f"Expense updated successfully (ID: {exp_id})")
+            return True
+    print(f"Error: Expense with ID {exp_id} not found.")
+    return False
+
+def delete_expense(data, exp_id):
+    original_length = len(data["expenses"])
+    data["expenses"] = [e for e in data["expenses"] if e["id"] != exp_id]
+    if len(data["expenses"]) < original_length:
+        print(f"Expense deleted successfully.")
+        return True
+    print(f"Error: Expense with ID {exp_id} not found.")
+    return False
+
+def list_expenses(data):
+    if not data["expenses"]:
+        print("The list is empty.")
+        return
+    
+    print(f"{'ID':<7} {'Date':<15} {'Description':<20} {'Amount':<10}")
+    print("-" * 52)
+    for exp in data["expenses"]:
+        print(f"{exp['id']:<7} {exp['date']:<15} {exp['description']:<20} ${exp['amount']:<10}")
+
+def show_summary(data, month=None):
+    months_map = {
+        1: "January", 2: "February", 3: "March", 4: "April", 5: "May", 6: "June",
+        7: "July", 8: "August", 9: "September", 10: "October", 11: "November", 12: "December"
+    }
+    
+    total = 0
+    if month:
+        for exp in data["expenses"]:
+            exp_month = datetime.strptime(exp["date"], "%Y-%m-%d").month
+            if exp_month == month:
+                total += exp["amount"]
+        print(f"Total expenses for {months_map.get(month, 'Unknown')}: ${total}")
+    else:
+        total = sum(exp["amount"] for exp in data["expenses"])
+        print(f"Total expenses: ${total}")
+
+
 def main():
     filename = "expense-list.json"
     data = load_data(filename)
-    parser = argparse.ArgumentParser(description="Enpense Tracker Program")
+    
+    parser = argparse.ArgumentParser(description="Expense Tracker Program")
     subparsers = parser.add_subparsers(dest="command", help="Support commands")
 
-    add_parser = subparsers.add_parser("add", help="Add an expense")
-    add_parser.add_argument("--description", type=str, required=True, help="Description of expense")
-    add_parser.add_argument("--amount", type=float, required=True, help="Amount spent")
+    add_p = subparsers.add_parser("add", help="Add an expense")
+    add_p.add_argument("--description", type=str, required=True)
+    add_p.add_argument("--amount", type=float, required=True)
 
-    update_parser = subparsers.add_parser("update", help="Update an expense")
-    update_parser.add_argument("--id", type=int, required=True, help="The index in expense list")
-    update_parser.add_argument("--description", type=str, required=True, help="Description of expense")
-    update_parser.add_argument("--amount", type=float, required=True, help="Amount spent")
+    up_p = subparsers.add_parser("update", help="Update an expense")
+    up_p.add_argument("--id", type=int, required=True)
+    up_p.add_argument("--description", type=str, required=True)
+    up_p.add_argument("--amount", type=float, required=True)
 
-    delete_parser = subparsers.add_parser("delete", help="Delete an expense")
-    delete_parser.add_argument("--id", type=int, required=True, help="The index in expense list")
+    del_p = subparsers.add_parser("delete", help="Delete an expense")
+    del_p.add_argument("--id", type=int, required=True)
 
-    list_parser = subparsers.add_parser("list", help="View all expenses")
+    subparsers.add_parser("list", help="View all expenses")
 
-    sum_parser = subparsers.add_parser("summary", help="A summary of all expenses")
-    sum_parser.add_argument("--month", type=int, help="for a specific month")
+    sum_p = subparsers.add_parser("summary", help="Show total expenses")
+    sum_p.add_argument("--month", type=int, help="Month (1-12)")
 
     args = parser.parse_args()
 
     if args.command == "add":
-        new_expense = {
-            "id": data["next_id"],
-            "description": args.description,
-            "amount": args.amount,
-            "date": datetime.now().strftime("%Y-%m-%d")
-        }
-        data["expenses"].append(new_expense)
-        data["next_id"] += 1
+        add_expense(data, args.description, args.amount)
         save_data(filename, data)
-        print(f"Expense added successfully (ID: {new_expense["id"]})")
     elif args.command == "update":
-        for exp in data["expenses"]:
-            if exp["id"] == args.id:
-                exp["description"] = args.description
-                exp["amount"] = args.amount
-                save_data(filename, data)
-                print(f"Expense updated successfully (ID: {exp["id"]})")
-    elif args.command == "delete":
-        original_length = len(data["expenses"])
-        data["expenses"] = [e for e in data["expenses"] if e["id"] != args.id]
-        if len(data["expenses"]) < original_length:
+        if update_expense(data, args.id, args.description, args.amount):
             save_data(filename, data)
-            print(f"Expense deleted successfully")
+    elif args.command == "delete":
+        if delete_expense(data, args.id):
+            save_data(filename, data)
     elif args.command == "list":
-        if len(data["expenses"]) > 0:
-            print(f"{"ID":7} {"Date":15} {"Description":15} {"Amount":10}")
-            for exp in data["expenses"]:
-                print(f"{str(exp["id"]):7} {exp["date"]:15} {exp["description"]:15} ${str(exp["amount"]):10}")
-        else:
-            print("The list is empty")
+        list_expenses(data)
     elif args.command == "summary":
-        months = {
-            1: "January",
-            2: "February",
-            3: "March",
-            4: "April",
-            5: "May",
-            6: "June",
-            7: "July",
-            8: "August",
-            9: "September",
-            10: "October",
-            11: "November",
-            12: "December"
-        }
-        if args.month is None:
-            total_expenses = 0
-            for exp in data["expenses"]:
-                total_expenses += exp["amount"]
-            print(f"Total expenses: ${total_expenses}")
-        else:
-
-            total_expenses = 0
-            for exp in data["expenses"]:
-                if args.month == datetime.strptime(exp["date"], "%Y-%m-%d").month:
-                    total_expenses += exp["amount"]
-            print(f"Total expenses for {months[args.month]}: ${total_expenses}")
+        show_summary(data, args.month)
     else:
         parser.print_help()
 
